@@ -21,10 +21,15 @@ pub struct State {
     fps: Option<f64>,
     error: Option<String>,
     result: Option<JobState>,
+    pub confirm_replace: bool,
+    replace: Option<(PathBuf, PathBuf)>,
 }
 
 pub fn show(app: &mut App, ctx: &egui::Context) {
     poll(app, ctx);
+    if app.export_dialog.confirm_replace {
+        confirm_replace(app, ctx);
+    }
     if !app.export_dialog.open {
         app.export_dialog.was_open = false;
         return;
@@ -60,6 +65,13 @@ fn poll(app: &mut App, ctx: &egui::Context) {
         return;
     }
     app.export_job = None;
+    let state = match (app.export_dialog.replace.take(), state) {
+        (Some((tmp, original)), JobState::Done { secs, .. }) => match replace_original(app, &tmp, &original) {
+            Ok(()) => JobState::Done { path: original, secs },
+            Err(e) => JobState::Failed(e),
+        },
+        (_, state) => state,
+    };
     if !app.export_dialog.open {
         match &state {
             JobState::Done { path, .. } => app.notify(format!("Exported {}", file_name(path)), ToastKind::Success),
@@ -68,6 +80,72 @@ fn poll(app: &mut App, ctx: &egui::Context) {
         }
     }
     app.export_dialog.result = Some(state);
+}
+
+fn confirm_replace(app: &mut App, ctx: &egui::Context) {
+    let Some(original) = app.original.clone() else {
+        app.export_dialog.confirm_replace = false;
+        return;
+    };
+    let modal = egui::Modal::new(egui::Id::unique("replace_original")).show(ctx, |ui| {
+        ui.set_width(400.0);
+        ui.label(theme::heading(format!("Replace {}?", file_name(&original))));
+        ui.add_space(theme::SP_2);
+        ui.label(theme::muted("Your edit is rendered first, then saved over the original file. This cannot be undone."));
+        ui.add_space(theme::SP_4);
+        ui.horizontal(|ui| {
+            if theme::primary_button(ui, "Replace original").clicked() {
+                app.export_dialog.confirm_replace = false;
+                start_replace(app, original.clone());
+            }
+            if ui.button("Cancel").clicked() {
+                app.export_dialog.confirm_replace = false;
+            }
+        });
+    });
+    if modal.should_close() {
+        app.export_dialog.confirm_replace = false;
+    }
+}
+
+fn start_replace(app: &mut App, original: PathBuf) {
+    let Some(format) = crate::export::format_for(&original) else { return };
+    let s = &app.project.settings;
+    let opts = ExportOptions { format, width: s.width, height: s.height, fps: s.fps, quality: 85, audio_kbps: 256, range: None };
+    let ext = original.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
+    let stem = original.file_stem().map(|e| e.to_string_lossy().into_owned()).unwrap_or_default();
+    let tmp = original.with_file_name(format!("{stem}.cutline-tmp.{ext}"));
+    let d = &mut app.export_dialog;
+    d.open = true;
+    d.was_open = true;
+    d.result = None;
+    d.error = None;
+    match ExportJob::start(&app.project, &opts, tmp.clone()) {
+        Ok(job) => {
+            app.export_job = Some(job);
+            app.export_dialog.replace = Some((tmp, original));
+        }
+        Err(e) => app.export_dialog.result = Some(JobState::Failed(e)),
+    }
+}
+
+fn replace_original(app: &mut App, tmp: &Path, original: &Path) -> Result<(), String> {
+    app.reset_engines();
+    let mut last = String::new();
+    for _ in 0..15 {
+        match std::fs::rename(tmp, original) {
+            Ok(()) => {
+                let path = original.to_path_buf();
+                app.new_project();
+                app.importer.import(vec![path.clone()]);
+                app.original = Some(path);
+                return Ok(());
+            }
+            Err(e) => last = e.to_string(),
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    Err(format!("Could not replace {}: {last}. Your edit was kept as {}", file_name(original), file_name(tmp)))
 }
 
 fn init(app: &mut App) {

@@ -80,3 +80,29 @@ pub fn font_file(bold: bool) -> PathBuf {
     });
     fonts[bold as usize].clone()
 }
+
+pub fn format_for(path: &std::path::Path) -> Option<Format> {
+    match path.extension()?.to_str()?.to_ascii_lowercase().as_str() {
+        "mp4" | "m4v" | "mov" | "mkv" => Some(Format::Mp4H264),
+        "webm" => Some(Format::WebmVp9),
+        "gif" => Some(Format::Gif),
+        "mp3" => Some(Format::Mp3),
+        "wav" => Some(Format::Wav),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn format_follows_original_extension() {
+        assert_eq!(format_for(Path::new("a.MP4")), Some(Format::Mp4H264));
+        assert_eq!(format_for(Path::new("a.mkv")), Some(Format::Mp4H264));
+        assert_eq!(format_for(Path::new("a.webm")), Some(Format::WebmVp9));
+        assert_eq!(format_for(Path::new("a.flac")), None);
+        assert_eq!(format_for(Path::new("a")), None);
+    }
+}
