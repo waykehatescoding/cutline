@@ -1,0 +1,29 @@
+[package]
+name = "cutline"
+version = "0.1.0"
+edition = "2021"
+description = "A fast, lightweight non-linear video editor built on egui and ffmpeg"
+license = "MIT"
+repository = "https://github.com/waykehatescoding/cutline"
+readme = "README.md"
+keywords = ["video", "editor", "nle", "ffmpeg", "egui"]
+categories = ["multimedia::video"]
+
+[dependencies]
+eframe = { version = "0.37", default-features = false, features = ["glow", "x11", "wayland"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rfd = "0.18"
+cpal = "0.18"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev.package."*"]
+opt-level = 2
+[profile.dev]
+opt-level = 1
