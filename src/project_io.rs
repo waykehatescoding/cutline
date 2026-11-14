@@ -76,13 +76,15 @@ pub fn load(path: &Path) -> Result<Project, String> {
 }
 
 fn is_local(path: &Path) -> bool {
-    let s = path.to_string_lossy();
-    if s.starts_with("\\\\") || s.starts_with("//") {
-        return false;
-    }
-    match path.components().next() {
-        Some(Component::Prefix(p)) => matches!(p.kind(), std::path::Prefix::Disk(_)),
-        _ => true,
+    let plain = |c: Component| matches!(c, Component::Normal(_) | Component::CurDir | Component::ParentDir);
+    let mut c = path.components();
+    match c.next() {
+        Some(Component::Prefix(p)) => {
+            matches!(p.kind(), std::path::Prefix::Disk(_)) && c.next() == Some(Component::RootDir) && c.all(plain)
+        }
+        Some(Component::RootDir) => !cfg!(windows) && c.all(plain),
+        Some(first) => plain(first) && c.all(plain),
+        None => false,
     }
 }
 
@@ -290,5 +292,9 @@ mod tests {
         assert!(!is_local(Path::new(r"\\server\share\a.mp4")));
         assert!(!is_local(Path::new(r"\\?\UNC\server\share\a.mp4")));
         assert!(!is_local(Path::new(r"\\.\pipe\x")));
+        assert!(!is_local(Path::new(r"\??\UNC\server\share\a.mp4")));
+        assert!(!is_local(Path::new(r"\server\a.mp4")));
+        assert!(!is_local(Path::new(r"C:a.mp4")));
+        assert!(!is_local(Path::new(r"//server/share/a.mp4")));
     }
 }
