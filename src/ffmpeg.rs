@@ -22,7 +22,7 @@ pub fn command(name: &str) -> Command {
 }
 
 pub fn available() -> bool {
-    ["ffmpeg", "ffprobe"].iter().all(|n| {
-        command(n).arg("-version").stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s| s.success()).unwrap_or(false)
-    })
+    ["ffmpeg", "ffprobe"]
+        .iter()
+        .all(|n| command(n).arg("-version").stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s| s.success()).unwrap_or(false))
 }

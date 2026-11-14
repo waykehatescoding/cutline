@@ -1,5 +1,8 @@
 use crate::model::*;
-use crate::{audio, commands, compositor, decode, edit_ops, effects_panel, export, export_dialog, history, inspector, media, media_bin, monitor, project_io, theme, thumbs, timeline, waveform};
+use crate::{
+    audio, commands, compositor, decode, edit_ops, effects_panel, export, export_dialog, history, inspector, media, media_bin, monitor,
+    project_io, theme, thumbs, timeline, waveform,
+};
 use eframe::egui;
 use std::path::PathBuf;
 
@@ -239,11 +242,7 @@ impl App {
     }
 
     pub fn import_dialog(&mut self) {
-        if let Some(paths) = rfd::FileDialog::new()
-            .add_filter("Media", media::EXTENSIONS)
-            .add_filter("All files", &["*"])
-            .pick_files()
-        {
+        if let Some(paths) = rfd::FileDialog::new().add_filter("Media", media::EXTENSIONS).add_filter("All files", &["*"]).pick_files() {
             self.importer.import(paths);
         }
     }
@@ -361,7 +360,8 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         self.poll_imports();
-        let dropped: Vec<PathBuf> = ctx.input(|i| i.raw.dropped_files.iter().map(|f| f.path().to_path_buf()).filter(|p| !p.as_os_str().is_empty()).collect());
+        let dropped: Vec<PathBuf> =
+            ctx.input(|i| i.raw.dropped_files.iter().map(|f| f.path().to_path_buf()).filter(|p| !p.as_os_str().is_empty()).collect());
         if !dropped.is_empty() {
             self.importer.import(dropped);
         }

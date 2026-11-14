@@ -109,10 +109,7 @@ pub fn primary_button(ui: &mut egui::Ui, text: &str) -> egui::Response {
 }
 
 pub fn panel_frame() -> egui::Frame {
-    egui::Frame::new()
-        .fill(BG_PANEL)
-        .inner_margin(Margin::same(PAD as i8))
-        .corner_radius(CornerRadius::same(R_OUTER))
+    egui::Frame::new().fill(BG_PANEL).inner_margin(Margin::same(PAD as i8)).corner_radius(CornerRadius::same(R_OUTER))
 }
 
 pub fn apply(ctx: &egui::Context) {

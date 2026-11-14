@@ -15,7 +15,8 @@ pub enum Format {
 }
 
 impl Format {
-    pub const ALL: [Format; 7] = [Format::Mp4H264, Format::Mp4H265, Format::WebmVp9, Format::MovProRes, Format::Gif, Format::Mp3, Format::Wav];
+    pub const ALL: [Format; 7] =
+        [Format::Mp4H264, Format::Mp4H265, Format::WebmVp9, Format::MovProRes, Format::Gif, Format::Mp3, Format::Wav];
 
     pub fn name(&self) -> &'static str {
         match self {

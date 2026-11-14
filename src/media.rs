@@ -2,7 +2,10 @@ use crate::model::*;
 use eframe::egui;
 use std::path::{Path, PathBuf};
 
-pub const EXTENSIONS: &[&str] = &["mp4", "mov", "mkv", "webm", "avi", "m4v", "wmv", "flv", "ts", "mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "png", "jpg", "jpeg", "bmp", "gif", "webp"];
+pub const EXTENSIONS: &[&str] = &[
+    "mp4", "mov", "mkv", "webm", "avi", "m4v", "wmv", "flv", "ts", "mp3", "wav", "flac", "aac", "m4a", "ogg", "opus", "png", "jpg", "jpeg",
+    "bmp", "gif", "webp",
+];
 
 pub struct Importer {
     ctx: egui::Context,

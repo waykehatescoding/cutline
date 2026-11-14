@@ -140,7 +140,11 @@ impl Clip {
     }
     pub fn source_time(&self, t: f64) -> f64 {
         let local = (t - self.start).clamp(0.0, self.duration()) * self.speed;
-        if self.reverse { self.out_point - local } else { self.in_point + local }
+        if self.reverse {
+            self.out_point - local
+        } else {
+            self.in_point + local
+        }
     }
     pub fn media_id(&self) -> Option<MediaId> {
         match self.source {
@@ -326,7 +330,17 @@ impl Default for Project {
         };
         for (kind, name) in [(TrackKind::Video, "V2"), (TrackKind::Video, "V1"), (TrackKind::Audio, "A1"), (TrackKind::Audio, "A2")] {
             let id = TrackId(p.alloc_id());
-            p.tracks.push(Track { id, kind, name: name.into(), muted: false, solo: false, locked: false, hidden: false, volume: 1.0, clips: vec![] });
+            p.tracks.push(Track {
+                id,
+                kind,
+                name: name.into(),
+                muted: false,
+                solo: false,
+                locked: false,
+                hidden: false,
+                volume: 1.0,
+                clips: vec![],
+            });
         }
         p
     }
