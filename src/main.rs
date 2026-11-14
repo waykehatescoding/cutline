@@ -36,6 +36,7 @@ fn main() -> eframe::Result {
             .with_inner_size([1600.0, 940.0])
             .with_min_inner_size([1024.0, 640.0])
             .with_drag_and_drop(true)
+            .with_decorations(false)
             .with_icon(egui::IconData { rgba: include_bytes!("../assets/icon64.rgba").to_vec(), width: 64, height: 64 }),
         ..Default::default()
     };

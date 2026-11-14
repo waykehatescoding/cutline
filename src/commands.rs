@@ -23,6 +23,7 @@ pub enum Command {
     SaveAs,
     Import,
     Export,
+    OverwriteOriginal,
     ExportFrame,
     Quit,
     Undo,
@@ -81,7 +82,7 @@ pub enum Command {
 use Command::*;
 
 const MENUS: &[(&str, &[&[Command]])] = &[
-    ("File", &[&[New, Open], &[Save, SaveAs], &[Import], &[Export, ExportFrame], &[Quit]]),
+    ("File", &[&[New, Open], &[Save, SaveAs], &[Import], &[Export, OverwriteOriginal, ExportFrame], &[Quit]]),
     ("Edit", &[&[Undo, Redo], &[Cut, Copy, Paste, Duplicate], &[Delete, RippleDelete], &[SelectAll, Deselect]]),
     (
         "Clip",
@@ -127,6 +128,7 @@ impl Command {
             SaveAs => "Save as",
             Import => "Import media",
             Export => "Export",
+            OverwriteOriginal => "Save over original",
             ExportFrame => "Export frame as PNG",
             Quit => "Quit",
             Undo => "Undo",
@@ -269,6 +271,9 @@ impl Command {
         let has_clips = app.project.duration() > 0.0;
         match self {
             Export => has_clips && app.ffmpeg_ok,
+            OverwriteOriginal => {
+                has_clips && app.ffmpeg_ok && app.export_job.is_none() && app.original.as_deref().and_then(export::format_for).is_some()
+            }
             ExportFrame => has_clips && app.ffmpeg_ok,
             Undo => app.history.can_undo(),
             Redo => app.history.can_redo(),
@@ -289,6 +294,7 @@ impl Command {
             SaveAs => app.save_as(),
             Import => app.import_dialog(),
             Export => app.export_dialog.open = true,
+            OverwriteOriginal => app.export_dialog.confirm_replace = true,
             ExportFrame => export_frame(app),
             Quit => app.ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             Undo => app.undo(),
@@ -560,26 +566,137 @@ fn recent_menu(app: &mut App, ui: &mut egui::Ui) {
     });
 }
 
+pub const TITLE_H: f32 = 34.0;
+const CAPTION_W: f32 = 46.0;
+
 pub fn menu_bar(app: &mut App, ui: &mut egui::Ui) {
-    egui::MenuBar::new().ui(ui, |ui| {
-        for (name, groups) in MENUS {
-            ui.menu_button(*name, |ui| {
-                ui.set_min_width(260.0);
-                for (i, group) in groups.iter().enumerate() {
-                    if i > 0 {
-                        ui.separator();
-                    }
-                    for &cmd in *group {
-                        menu_item(app, ui, cmd);
-                        if cmd == Open {
-                            recent_menu(app, ui);
+    let ctx = ui.ctx().clone();
+    let bar = ui.max_rect();
+    let maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
+    let drag = ui.interact(bar, Id::unique("cutline_title_drag"), Sense::click_and_drag());
+    if drag.double_clicked() {
+        ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
+    } else if drag.drag_started_by(egui::PointerButton::Primary) {
+        ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
+    }
+
+    let file = app.original.as_ref().filter(|_| app.project_path.is_none()).and_then(|p| p.file_name()).map(|n| n.to_string_lossy());
+    let title = match (&file, app.project.name.trim()) {
+        (Some(f), _) => f.as_ref(),
+        (None, "") => "Untitled",
+        (None, name) => name,
+    };
+    let galley = ui.painter().layout_no_wrap(format!("{title} - Cutline"), FontId::proportional(theme::SIZE_BODY), theme::TEXT_MUTED);
+    let pos = bar.center() - galley.size() / 2.0;
+    if app.dirty {
+        ui.painter().circle_filled(egui::pos2(pos.x - theme::SP_2, bar.center().y), 3.0, theme::ACCENT);
+    }
+    ui.painter().galley(pos, galley, theme::TEXT_MUTED);
+
+    ui.horizontal_centered(|ui| {
+        let (icon, _) = ui.allocate_exact_size(vec2(18.0, 18.0), Sense::hover());
+        let tex = app_icon(&ctx);
+        ui.painter().image(tex.id(), icon, egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)), egui::Color32::WHITE);
+        ui.add_space(theme::SP_1);
+        egui::MenuBar::new().ui(ui, |ui| {
+            for (name, groups) in MENUS {
+                ui.menu_button(*name, |ui| {
+                    ui.set_min_width(260.0);
+                    for (i, group) in groups.iter().enumerate() {
+                        if i > 0 {
+                            ui.separator();
+                        }
+                        for &cmd in *group {
+                            menu_item(app, ui, cmd);
+                            if cmd == Open {
+                                recent_menu(app, ui);
+                            }
                         }
                     }
-                }
-            });
-        }
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| bar_right(app, ui));
+                });
+            }
+        });
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            ui.spacing_mut().item_spacing.x = 0.0;
+            caption_buttons(ui, maximized);
+            ui.spacing_mut().item_spacing.x = theme::SP_2;
+            ui.add_space(theme::SP_2);
+            bar_right(app, ui);
+        });
     });
+}
+
+fn app_icon(ctx: &egui::Context) -> egui::TextureHandle {
+    let id = Id::unique("cutline_app_icon");
+    if let Some(t) = ctx.data(|d| d.get_temp::<egui::TextureHandle>(id)) {
+        return t;
+    }
+    let img = egui::ColorImage::from_rgba_unmultiplied([64, 64], include_bytes!("../assets/icon64.rgba"));
+    let t = ctx.load_texture("cutline-icon", img, egui::TextureOptions::LINEAR);
+    ctx.data_mut(|d| d.insert_temp(id, t.clone()));
+    t
+}
+
+fn caption_buttons(ui: &mut egui::Ui, maximized: bool) {
+    let h = ui.available_height().max(TITLE_H);
+    let buttons = [
+        (Icon::Close, "Close", egui::ViewportCommand::Close),
+        if maximized {
+            (Icon::Restore, "Restore", egui::ViewportCommand::Maximized(false))
+        } else {
+            (Icon::Maximize, "Maximize", egui::ViewportCommand::Maximized(true))
+        },
+        (Icon::Minimize, "Minimize", egui::ViewportCommand::Minimized(true)),
+    ];
+    for (icon, label, cmd) in buttons {
+        let (rect, resp) = ui.allocate_exact_size(vec2(CAPTION_W, h), Sense::click());
+        let close = icon == Icon::Close;
+        let (bg, fg) = match (resp.hovered(), close) {
+            (true, true) => (theme::DANGER, egui::Color32::WHITE),
+            (true, false) => (theme::BG_HOVER, theme::TEXT),
+            _ => (egui::Color32::TRANSPARENT, theme::TEXT_MUTED),
+        };
+        ui.painter().rect_filled(rect, 0.0, bg);
+        icons::paint(ui.painter(), egui::Rect::from_center_size(rect.center(), vec2(10.0, 10.0)), icon, fg);
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
+        if resp.clicked() {
+            ui.ctx().send_viewport_cmd(cmd);
+        }
+    }
+}
+
+pub fn window_frame(ctx: &egui::Context) {
+    let (maximized, rect, pointer, pressed) =
+        ctx.input(|i| (i.viewport().maximized.unwrap_or(false), i.content_rect(), i.pointer.hover_pos(), i.pointer.primary_pressed()));
+    if maximized {
+        return;
+    }
+    let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, Id::unique("cutline_frame")));
+    painter.rect_stroke(rect, 0.0, Stroke::new(1.0, theme::BORDER_STRONG), egui::StrokeKind::Inside);
+    let Some(p) = pointer else { return };
+    let e = 5.0;
+    let (l, r, t, b) = (p.x - rect.left() < e, rect.right() - p.x < e, p.y - rect.top() < e, rect.bottom() - p.y < e);
+    use egui::ResizeDirection as D;
+    let dir = match (l, r, t, b) {
+        (true, _, true, _) => D::NorthWest,
+        (_, true, true, _) => D::NorthEast,
+        (true, _, _, true) => D::SouthWest,
+        (_, true, _, true) => D::SouthEast,
+        (true, ..) => D::West,
+        (_, true, ..) => D::East,
+        (_, _, true, _) => D::North,
+        (.., true) => D::South,
+        _ => return,
+    };
+    ctx.set_cursor_icon(match dir {
+        D::NorthWest | D::SouthEast => egui::CursorIcon::ResizeNwSe,
+        D::NorthEast | D::SouthWest => egui::CursorIcon::ResizeNeSw,
+        D::West | D::East => egui::CursorIcon::ResizeHorizontal,
+        D::North | D::South => egui::CursorIcon::ResizeVertical,
+    });
+    if pressed {
+        ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(dir));
+    }
 }
 
 fn bar_right(app: &mut App, ui: &mut egui::Ui) {
@@ -589,6 +706,13 @@ fn bar_right(app: &mut App, ui: &mut egui::Ui) {
             Export.run(app);
         }
     });
+    if app.original.is_some() {
+        ui.add_enabled_ui(OverwriteOriginal.enabled(app), |ui| {
+            if ui.button("Save over original").on_hover_text(OverwriteOriginal.tooltip()).clicked() {
+                OverwriteOriginal.run(app);
+            }
+        });
+    }
     ui.add_space(theme::SP_1);
     for (cmd, icon) in [(Redo, Icon::Redo), (Undo, Icon::Undo)] {
         ui.add_enabled_ui(cmd.enabled(app), |ui| {
@@ -597,13 +721,6 @@ fn bar_right(app: &mut App, ui: &mut egui::Ui) {
             }
         });
     }
-    ui.add_space(theme::SP_2);
-    if app.dirty {
-        let (rect, resp) = ui.allocate_exact_size(vec2(8.0, 8.0), Sense::hover());
-        ui.painter().circle_filled(rect.center(), 3.0, theme::ACCENT);
-        resp.on_hover_text("Unsaved changes");
-    }
-    ui.label(theme::strong(app.project.name.clone()));
 }
 
 pub fn status_bar(app: &mut App, ui: &mut egui::Ui) {

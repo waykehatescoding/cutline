@@ -88,6 +88,7 @@ pub struct App {
     pub ffmpeg_ok: bool,
     pub last_autosave: f64,
     pub updater: updater::Updater,
+    pub original: Option<PathBuf>,
 }
 
 impl App {
@@ -122,6 +123,7 @@ impl App {
             ffmpeg_ok: crate::ffmpeg::available(),
             last_autosave: 0.0,
             updater: updater::Updater::new(ctx.clone()),
+            original: None,
             ctx,
         };
         app.updater.check();
@@ -261,6 +263,10 @@ impl App {
                     m.id = MediaId(self.project.alloc_id());
                     let first = self.project.media.is_empty() && self.project.duration() == 0.0;
                     let id = m.id;
+                    if first {
+                        self.original = Some(m.path.clone());
+                        self.dirty = false;
+                    }
                     if first && m.has_video {
                         self.project.settings.width = m.width.max(2) & !1;
                         self.project.settings.height = m.height.max(2) & !1;
@@ -279,8 +285,16 @@ impl App {
         }
     }
 
-    pub fn new_project(&mut self) {
+    pub fn reset_engines(&mut self) {
         self.stop();
+        self.decoder = decode::Decoder::new(self.ctx.clone());
+        self.thumbs = thumbs::Thumbs::new(self.ctx.clone());
+        self.waves = waveform::Waveforms::new(self.ctx.clone());
+    }
+
+    pub fn new_project(&mut self) {
+        self.reset_engines();
+        self.original = None;
         self.project = Project::default();
         self.history = history::History::default();
         self.project_path = None;
@@ -374,7 +388,8 @@ impl eframe::App for App {
 
         let gutter = egui::Margin::same(3);
         egui::Panel::top("menu")
-            .frame(egui::Frame::new().fill(theme::BG_APP).inner_margin(egui::Margin::symmetric(theme::SP_2 as i8, 2)))
+            .exact_size(commands::TITLE_H)
+            .frame(egui::Frame::new().fill(theme::BG_APP).inner_margin(egui::Margin { left: theme::SP_2 as i8, ..Default::default() }))
             .show(ui, |ui| commands::menu_bar(self, ui));
         egui::Panel::bottom("status")
             .frame(egui::Frame::new().fill(theme::BG_APP).inner_margin(egui::Margin::symmetric(theme::SP_3 as i8, 3)))
@@ -406,6 +421,7 @@ impl eframe::App for App {
         egui::CentralPanel::default().frame(theme::panel_frame().outer_margin(gutter)).show(ui, |ui| monitor::show(self, ui));
 
         export_dialog::show(self, &ctx);
+        commands::window_frame(&ctx);
         commands::palette(self, &ctx);
         commands::toasts(self, &ctx);
     }

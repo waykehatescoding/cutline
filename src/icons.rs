@@ -41,6 +41,9 @@ pub enum Icon {
     Film,
     Music,
     Close,
+    Minimize,
+    Maximize,
+    Restore,
     ChevronDown,
     Grip,
     Check,
@@ -287,6 +290,12 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(3.5, 3.5), (12.5, 12.5)]);
             pen.line(&[(12.5, 3.5), (3.5, 12.5)]);
         }
+        Icon::Minimize => pen.line(&[(3.0, 8.0), (13.0, 8.0)]),
+        Icon::Maximize => pen.rect((3.0, 3.0), (13.0, 13.0), 1),
+        Icon::Restore => {
+            pen.rect((3.0, 5.5), (10.5, 13.0), 1);
+            pen.line(&[(5.5, 5.5), (5.5, 3.0), (13.0, 3.0), (13.0, 10.5), (10.5, 10.5)]);
+        }
         Icon::ChevronDown => pen.line(&[(4.0, 6.0), (8.0, 10.0), (12.0, 6.0)]),
         Icon::Grip => {
             for x in [5.5, 10.5] {
@@ -350,7 +359,7 @@ pub fn toggle(ui: &mut Ui, icon: Icon, on: bool, tooltip: &str) -> Response {
 mod tests {
     use super::*;
 
-    const ALL: [Icon; 39] = [
+    const ALL: [Icon; 42] = [
         Icon::Play,
         Icon::Pause,
         Icon::SkipStart,
@@ -386,6 +395,9 @@ mod tests {
         Icon::Film,
         Icon::Music,
         Icon::Close,
+        Icon::Minimize,
+        Icon::Maximize,
+        Icon::Restore,
         Icon::ChevronDown,
         Icon::Grip,
         Icon::Check,
