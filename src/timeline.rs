@@ -228,6 +228,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     toolbar(app, ui, area_w - HEADER_W);
     ui.add_space(theme::SP_1);
     let area = ui.available_rect_before_wrap();
+    ui.allocate_rect(area, egui::Sense::hover());
     if area.width() < HEADER_W + 60.0 || area.height() < RULER_H + BAR_H + 24.0 {
         return;
     }
@@ -654,7 +655,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 
     if app.project.tracks.iter().all(|t| t.clips.is_empty()) && drag.is_none() && ghost.is_none() {
         lanes.text(
-            lane.center(),
+            pos2(lane.center().x, lane.top() + app.view.track_height * 1.5),
             Align2::CENTER_CENTER,
             "Drag media here, or press Ctrl+I to import",
             FontId::proportional(theme::SIZE_BODY),
@@ -935,7 +936,7 @@ fn draw_clip(
             }
         } else if kind == TrackKind::Audio && m.has_audio {
             if let Some(pk) = wv.get(m) {
-                draw_wave(pt, &pk.data, pk.per_sec, c, g, r, vr, col, dim || c.audio_muted);
+                draw_wave(pt, &pk, c, g, r, vr, col, dim || c.audio_muted);
             }
         }
     }
@@ -1011,7 +1012,7 @@ fn draw_clip(
     }
 }
 
-fn draw_wave(pt: &Painter, data: &[f32], per_sec: f64, c: &Clip, g: &Geo, r: Rect, vr: Rect, base: Color32, dim: bool) {
+fn draw_wave(pt: &Painter, peaks: &crate::waveform::Peaks, c: &Clip, g: &Geo, r: Rect, vr: Rect, base: Color32, dim: bool) {
     let top = r.top() + NAME_H;
     let cy = (top + r.bottom()) * 0.5;
     let half = ((r.bottom() - top) * 0.5 - 2.0).max(1.0);
@@ -1024,13 +1025,10 @@ fn draw_wave(pt: &Painter, data: &[f32], per_sec: f64, c: &Clip, g: &Geo, r: Rec
     while x < x1 {
         let (a, b) = (c.source_time(g.t(x)), c.source_time(g.t(x + 1.0)));
         let (lo, hi) = if a < b { (a, b) } else { (b, a) };
-        let i0 = (lo * per_sec) as usize;
-        if i0 >= data.len() {
+        if lo * peaks.per_sec >= peaks.data.len() as f64 {
             break;
         }
-        let i1 = ((hi * per_sec).ceil() as usize).clamp(i0 + 1, data.len());
-        let stride = ((i1 - i0) / 16).max(1);
-        let peak = data[i0..i1].iter().step_by(stride).fold(0.0f32, |m, v| m.max(v.abs())).min(1.0);
+        let peak = peaks.range(lo, hi).min(1.0);
         let amp = (peak * half).max(0.5);
         mesh.colored_vertex(pos2(x, cy - amp), col);
         mesh.colored_vertex(pos2(x, cy + amp), col);

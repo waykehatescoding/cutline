@@ -103,6 +103,7 @@ pub fn primary_button(ui: &mut egui::Ui, text: &str) -> egui::Response {
         for s in [&mut w.inactive, &mut w.hovered, &mut w.active] {
             s.bg_stroke = Stroke::NONE;
         }
+        ui.spacing_mut().button_padding = egui::vec2(SP_3 + 2.0, SP_1);
         ui.add(egui::Button::new(label).min_size(egui::vec2(0.0, 28.0)))
     })
     .inner
@@ -142,6 +143,9 @@ pub fn apply(ctx: &egui::Context) {
         s.slider_width = 140.0;
         s.combo_width = 140.0;
         s.indent = SP_4;
+        s.icon_width = 12.0;
+        s.icon_width_inner = 6.0;
+        s.icon_spacing = SP_2;
 
         style.interaction.tooltip_delay = 0.35;
         style.animation_time = 0.12;

@@ -25,7 +25,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     let mut query = ctx.data(|d| d.get_temp::<String>(search_id)).unwrap_or_default();
 
     ui.horizontal(|ui| {
-        let w = ui.available_width() - 2.0 * 26.0 - 2.0 * ui.spacing().item_spacing.x;
+        let w = ui.available_width() - 2.0 * 28.0 - 3.0 * ui.spacing().item_spacing.x - 8.0;
         ui.add(egui::TextEdit::singleline(&mut query).hint_text("Search media").desired_width(w.max(40.0)));
         if icons::button(ui, Icon::Import, "Import media").clicked() {
             app.import_dialog();
@@ -144,7 +144,7 @@ fn empty_state(app: &mut App, ui: &mut egui::Ui) {
         ui.label(theme::strong("Import footage"));
         ui.label(theme::muted("Drop video, audio or images here"));
         ui.add_space(theme::SP_2);
-        if theme::primary_button(ui, "Browse files").clicked() {
+        if ui.button("Browse files").clicked() {
             app.import_dialog();
         }
     });

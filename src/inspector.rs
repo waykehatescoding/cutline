@@ -155,7 +155,7 @@ fn grid(ui: &mut Ui, id: impl std::hash::Hash + std::fmt::Debug, f: impl FnOnce(
 }
 
 fn section(ui: &mut Ui, title: &str, open: bool, f: impl FnOnce(&mut Ui)) {
-    egui::CollapsingHeader::new(theme::heading(title)).default_open(open).show(ui, |ui| {
+    egui::CollapsingHeader::new(theme::heading(title)).default_open(open).show_unindented(ui, |ui| {
         ui.add_space(theme::SP_1);
         f(ui);
         ui.add_space(theme::SP_1);
@@ -171,7 +171,6 @@ fn reset_row(ui: &mut Ui, ctl: f32) -> bool {
 
 pub fn show(app: &mut App, ui: &mut Ui) {
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-        ui.spacing_mut().indent = 0.0;
         ui.visuals_mut().indent_has_left_vline = false;
         let pid = egui::Id::unique("inspector_pending");
         let mut ed = Ed {
@@ -320,7 +319,10 @@ fn clip_panel(app: &mut App, ui: &mut Ui, ed: &mut Ed, id: ClipId) {
 
     ed.text(ui, &mut clip.name, 1);
     ui.horizontal(|ui| {
-        ui.label(theme::small(source_label(&clip, media.as_ref())));
+        let source = source_label(&clip, media.as_ref());
+        if source != clip.name {
+            ui.label(theme::small(source));
+        }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             ui.label(theme::mono(theme::timecode(clip.duration(), fps)).color(theme::TEXT_MUTED));
         });

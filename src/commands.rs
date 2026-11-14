@@ -831,30 +831,31 @@ pub fn toasts(app: &mut App, ctx: &egui::Context) {
             ToastKind::Info => theme::INFO,
         };
         let offset = [-theme::SP_4 + (1.0 - shown) * theme::SP_5, -y];
-        let inner = egui::Area::new(id).order(egui::Order::Tooltip).anchor(Align2::RIGHT_BOTTOM, offset).show(ctx, |ui| {
-            ui.set_opacity(shown);
-            let frame = egui::Frame::new()
-                .fill(theme::BG_RAISED)
-                .corner_radius(theme::R_OUTER)
-                .shadow(ctx.global_style().visuals.popup_shadow)
-                .inner_margin(egui::Margin {
-                    left: theme::SP_3 as i8 + 3,
-                    right: theme::SP_3 as i8,
-                    top: theme::SP_2 as i8,
-                    bottom: theme::SP_2 as i8,
+        let inner =
+            egui::Area::new(id).sense(Sense::click()).order(egui::Order::Tooltip).anchor(Align2::RIGHT_BOTTOM, offset).show(ctx, |ui| {
+                ui.set_opacity(shown);
+                let frame = egui::Frame::new()
+                    .fill(theme::BG_RAISED)
+                    .corner_radius(theme::R_OUTER)
+                    .shadow(ctx.global_style().visuals.popup_shadow)
+                    .inner_margin(egui::Margin {
+                        left: theme::SP_3 as i8 + 3,
+                        right: theme::SP_3 as i8,
+                        top: theme::SP_2 as i8,
+                        bottom: theme::SP_2 as i8,
+                    });
+                let shown_frame = frame.show(ui, |ui| {
+                    ui.set_max_width(320.0);
+                    ui.add(egui::Label::new(egui::RichText::new(&toast.text).color(theme::TEXT)).wrap());
                 });
-            let shown_frame = frame.show(ui, |ui| {
-                ui.set_max_width(320.0);
-                ui.add(egui::Label::new(egui::RichText::new(&toast.text).color(theme::TEXT)).wrap());
+                let rect = shown_frame.response.rect;
+                let r = theme::R_OUTER;
+                let radius = egui::CornerRadius { nw: r, sw: r, ne: 0, se: 0 };
+                let strip = egui::Rect::from_min_size(rect.min, vec2(3.0, rect.height()));
+                ui.painter().rect_filled(strip, radius, stripe);
+                rect
             });
-            let rect = shown_frame.response.rect;
-            let r = theme::R_OUTER;
-            let radius = egui::CornerRadius { nw: r, sw: r, ne: 0, se: 0 };
-            let strip = egui::Rect::from_min_size(rect.min, vec2(3.0, rect.height()));
-            ui.painter().rect_filled(strip, radius, stripe);
-            rect
-        });
-        let click = inner.response.interact(Sense::click());
+        let click = inner.response;
         if click.hovered() {
             ctx.set_cursor_icon(egui::CursorIcon::PointingHand);
         }

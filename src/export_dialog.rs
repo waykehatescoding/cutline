@@ -236,11 +236,7 @@ fn form(app: &mut App, ui: &mut egui::Ui) {
     }
     let clicked = ui
         .add_enabled_ui(blocker.is_none(), |ui| {
-            ui.scope(|ui| {
-                ui.spacing_mut().button_padding.x = ui.available_width() / 2.0 - 24.0;
-                theme::primary_button(ui, "Export").clicked()
-            })
-            .inner
+            ui.with_layout(egui::Layout::top_down_justified(egui::Align::Center), |ui| theme::primary_button(ui, "Export").clicked()).inner
         })
         .inner;
     if clicked {
