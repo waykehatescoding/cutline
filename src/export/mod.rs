@@ -70,15 +70,13 @@ pub enum JobState {
 }
 
 pub fn font_file(bold: bool) -> PathBuf {
-    let name = if bold { "cutline-Inter-SemiBold.ttf" } else { "cutline-Inter-Regular.ttf" };
-    let path = std::env::temp_dir().join(name);
-    if !path.exists() {
-        let bytes: &[u8] = if bold {
-            include_bytes!("../../assets/fonts/Inter-SemiBold.ttf")
-        } else {
-            include_bytes!("../../assets/fonts/Inter-Regular.ttf")
-        };
-        let _ = std::fs::write(&path, bytes);
-    }
-    path
+    static FONTS: std::sync::OnceLock<[PathBuf; 2]> = std::sync::OnceLock::new();
+    let fonts = FONTS.get_or_init(|| {
+        let write = |stem, bytes: &[u8]| crate::ffmpeg::scratch_file(stem, "ttf", bytes).unwrap_or_default();
+        [
+            write("inter", include_bytes!("../../assets/fonts/Inter-Regular.ttf")),
+            write("inter-semibold", include_bytes!("../../assets/fonts/Inter-SemiBold.ttf")),
+        ]
+    });
+    fonts[bold as usize].clone()
 }

@@ -164,7 +164,7 @@ pub fn export_frame(project: &Project, t: f64, out: &Path) -> Result<(), String>
         audio_kbps: 128,
         range: Some((t, t + 1.5 / s.fps.max(1.0))),
     };
-    let tmp = std::env::temp_dir().join(format!("cutline-still-{}.mp4", std::process::id()));
+    let tmp = ffmpeg::scratch_file("still", "mp4", &[]).map_err(|e| e.to_string())?;
     let args = export_args(project, &opts, &tmp)?;
     let run = |cmd: &mut std::process::Command| {
         let o = cmd.stdout(Stdio::null()).stderr(Stdio::piped()).output().map_err(|e| format!("Could not start ffmpeg: {e}"))?;

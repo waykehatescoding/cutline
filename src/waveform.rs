@@ -58,7 +58,9 @@ impl Reducer {
 
 fn decode(path: &PathBuf) -> Option<Peaks> {
     let mut child = crate::ffmpeg::command("ffmpeg")
-        .args(["-v", "error", "-i"])
+        .args(["-v", "error"])
+        .args(crate::ffmpeg::SAFE_INPUT)
+        .arg("-i")
         .arg(path)
         .args(["-vn", "-ac", "1", "-ar", "8000", "-f", "f32le", "pipe:1"])
         .stdout(Stdio::piped())

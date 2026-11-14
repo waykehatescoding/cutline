@@ -100,6 +100,7 @@ pub fn probe(path: &Path) -> Result<Media, String> {
     let name = display_name(path);
     let out = crate::ffmpeg::command("ffprobe")
         .args(["-v", "error", "-print_format", "json", "-show_streams", "-show_format"])
+        .args(crate::ffmpeg::SAFE_INPUT)
         .arg(path)
         .output()
         .map_err(|e| format!("Could not run ffprobe for {name}: {e}"))?;
@@ -130,6 +131,10 @@ fn rotation(stream: &Value) -> f64 {
 pub fn parse_probe(path: &Path, json: &str) -> Result<Media, String> {
     let name = display_name(path);
     let root: Value = serde_json::from_str(json).map_err(|e| format!("Could not read {name}: {e}"))?;
+    let format = root["format"]["format_name"].as_str().unwrap_or_default();
+    if ["hls", "concat", "ffconcat", "playlist", "tee", "dash"].iter().any(|bad| format.split(',').any(|f| f == *bad)) {
+        return Err(format!("Unsupported file: {name}"));
+    }
     let streams = root["streams"].as_array().map(Vec::as_slice).unwrap_or_default();
     let video = streams.iter().find(|s| s["codec_type"] == "video" && s["disposition"]["attached_pic"] != 1);
     let audio = streams.iter().find(|s| s["codec_type"] == "audio");
@@ -189,6 +194,12 @@ mod tests {
 
     fn parse(json: &str, name: &str) -> Media {
         parse_probe(Path::new(name), json).unwrap()
+    }
+
+    #[test]
+    fn rejects_playlists() {
+        let json = r#"{"streams":[{"codec_type":"video","width":8,"height":8}],"format":{"format_name":"hls","duration":"1"}}"#;
+        assert!(parse_probe(Path::new("x.mp4"), json).is_err());
     }
 
     #[test]

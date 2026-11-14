@@ -162,6 +162,7 @@ impl Stream {
         let mut child = crate::ffmpeg::command("ffmpeg")
             .args(["-v", "error", "-hwaccel", "auto", "-threads", "0", "-ss"])
             .arg(format!("{:.3}", start.max(0.0)))
+            .args(crate::ffmpeg::SAFE_INPUT)
             .arg("-i")
             .arg(&media.path)
             .args(["-an", "-sn", "-vf"])
@@ -294,6 +295,7 @@ pub fn grab_frame(media: &Media, t: f64, w: u32, h: u32) -> Result<Frame, String
         cmd.arg("-ss").arg(format!("{:.3}", t.max(0.0)));
     }
     let out = cmd
+        .args(crate::ffmpeg::SAFE_INPUT)
         .arg("-i")
         .arg(&media.path)
         .args(["-frames:v", "1", "-an", "-sn", "-vf"])

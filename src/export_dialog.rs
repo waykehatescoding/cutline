@@ -400,7 +400,7 @@ fn open_file(path: &Path) {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
-        let _ = std::process::Command::new("cmd").args(["/c", "start", ""]).arg(path).creation_flags(0x0800_0000).spawn();
+        let _ = std::process::Command::new("explorer").arg(path).creation_flags(0x0800_0000).spawn();
     }
     #[cfg(not(windows))]
     let _ = std::process::Command::new(if cfg!(target_os = "macos") { "open" } else { "xdg-open" }).arg(path).spawn();

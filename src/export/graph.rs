@@ -1,9 +1,6 @@
 use super::{font_file, ExportOptions, Format};
 use crate::model::*;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-static COUNTER: AtomicUsize = AtomicUsize::new(0);
 const INLINE_LIMIT: usize = 6000;
 
 fn num(x: f64) -> String {
@@ -32,9 +29,8 @@ fn esc_path(p: &Path) -> String {
     p.to_string_lossy().replace('\\', "/").replace(':', "\\:")
 }
 
-fn temp_file(stem: &str) -> PathBuf {
-    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
-    std::env::temp_dir().join(format!("cutline-{stem}-{}-{n}.txt", std::process::id()))
+fn temp_file(stem: &str, contents: &str) -> Result<PathBuf, String> {
+    crate::ffmpeg::scratch_file(stem, "txt", contents.as_bytes()).map_err(|e| e.to_string())
 }
 
 fn visible(c: &Clip, t0: f64, dur: f64) -> bool {
@@ -206,6 +202,7 @@ impl<'a> Build<'a> {
             } else if self.ss(i) > 0.0 {
                 a.extend(["-ss".into(), num(self.ss(i))]);
             }
+            a.extend(crate::ffmpeg::SAFE_INPUT.map(String::from));
             a.extend(["-i".into(), inp.media.path.to_string_lossy().into_owned()]);
         }
         a
@@ -430,8 +427,7 @@ impl<'a> Build<'a> {
         tail.push_str(&format!(":enable='between(t,{},{})'", num(s), num(e)));
         let lines: Vec<&str> = st.text.lines().collect();
         for (i, line) in lines.iter().enumerate().filter(|(_, l)| !l.is_empty()) {
-            let file = temp_file("text");
-            std::fs::write(&file, line).map_err(|e| e.to_string())?;
+            let file = temp_file("text", line)?;
             let y = format!("{}*H+({})", num(c.transform.y as f64), num((i as f64 - lines.len() as f64 / 2.0) * lh));
             let f = format!(
                 "drawtext=fontfile='{}':textfile='{}':expansion=none:fontsize={}:fontcolor={}:x='{x}':y='{y}'{tail}",
@@ -568,8 +564,7 @@ fn filter_args(graph: String) -> Result<Vec<String>, String> {
     if graph.len() <= INLINE_LIMIT {
         return Ok(vec!["-filter_complex".into(), graph]);
     }
-    let file = temp_file("graph");
-    std::fs::write(&file, graph).map_err(|e| e.to_string())?;
+    let file = temp_file("graph", &graph)?;
     Ok(vec!["-/filter_complex".into(), file.to_string_lossy().into_owned()])
 }
 
