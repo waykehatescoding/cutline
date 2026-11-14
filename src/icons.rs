@@ -8,7 +8,6 @@ use std::f32::consts::{PI, TAU};
 pub enum Icon {
     Play,
     Pause,
-    Stop,
     SkipStart,
     SkipEnd,
     StepBack,
@@ -22,9 +21,7 @@ pub enum Icon {
     Undo,
     Redo,
     Import,
-    Export,
     Plus,
-    Minus,
     Trash,
     Eye,
     EyeOff,
@@ -36,21 +33,15 @@ pub enum Icon {
     Effect,
     Transition,
     Crop,
-    Marker,
     InPoint,
     OutPoint,
     ZoomIn,
     ZoomOut,
     Fit,
-    Folder,
     Film,
     Music,
-    Image,
-    Search,
     Close,
     ChevronDown,
-    ChevronRight,
-    Settings,
     Grip,
     Check,
     Warning,
@@ -131,7 +122,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.block((4.0, 3.0), (6.5, 13.0), 1);
             pen.block((9.5, 3.0), (12.0, 13.0), 1);
         }
-        Icon::Stop => pen.block((3.5, 3.5), (12.5, 12.5), 1),
         Icon::SkipStart => {
             pen.line(&[(3.5, 3.0), (3.5, 13.0)]);
             pen.closed(&[(13.0, 3.5), (6.0, 8.0), (13.0, 12.5)]);
@@ -197,16 +187,10 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(8.0, 2.5), (8.0, 10.0)]);
             pen.line(&[(5.0, 7.2), (8.0, 10.2), (11.0, 7.2)]);
         }
-        Icon::Export => {
-            pen.line(&[(2.5, 10.0), (2.5, 13.0), (13.5, 13.0), (13.5, 10.0)]);
-            pen.line(&[(8.0, 10.5), (8.0, 3.0)]);
-            pen.line(&[(5.0, 5.8), (8.0, 2.8), (11.0, 5.8)]);
-        }
         Icon::Plus => {
             pen.line(&[(8.0, 3.0), (8.0, 13.0)]);
             pen.line(&[(3.0, 8.0), (13.0, 8.0)]);
         }
-        Icon::Minus => pen.line(&[(3.0, 8.0), (13.0, 8.0)]),
         Icon::Trash => {
             pen.line(&[(2.5, 4.0), (13.5, 4.0)]);
             pen.line(&[(6.0, 4.0), (6.0, 2.5), (10.0, 2.5), (10.0, 4.0)]);
@@ -261,10 +245,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(4.5, 1.5), (4.5, 11.5), (14.5, 11.5)]);
             pen.line(&[(11.5, 14.5), (11.5, 4.5), (1.5, 4.5)]);
         }
-        Icon::Marker => {
-            pen.line(&[(4.0, 2.0), (4.0, 14.0)]);
-            pen.fill(&[(4.0, 2.5), (12.5, 2.5), (10.0, 5.75), (12.5, 9.0), (4.0, 9.0)]);
-        }
         Icon::InPoint | Icon::OutPoint => {
             let mut rects = [((3.5, 2.5), (5.5, 13.5)), ((5.5, 2.5), (10.5, 4.5)), ((5.5, 11.5), (10.5, 13.5))];
             if icon == Icon::OutPoint {
@@ -288,7 +268,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(13.5, 10.0), (13.5, 13.5), (10.0, 13.5)]);
             pen.line(&[(6.0, 13.5), (2.5, 13.5), (2.5, 10.0)]);
         }
-        Icon::Folder => pen.closed(&[(2.0, 3.5), (6.0, 3.5), (7.5, 5.5), (14.0, 5.5), (14.0, 12.5), (2.0, 12.5)]),
         Icon::Film => {
             pen.rect((2.5, 2.5), (13.5, 13.5), 2);
             pen.line(&[(5.5, 2.5), (5.5, 13.5)]);
@@ -304,32 +283,11 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(6.5, 11.5), (6.5, 3.5), (13.5, 2.5), (13.5, 10.5)]);
             pen.line(&[(6.5, 6.0), (13.5, 5.0)]);
         }
-        Icon::Image => {
-            pen.rect((2.0, 2.5), (14.0, 13.5), 2);
-            pen.circle((10.5, 6.0), 1.3);
-            pen.line(&[(2.5, 12.0), (6.0, 8.0), (9.0, 11.0), (10.5, 9.5), (13.5, 12.5)]);
-        }
-        Icon::Search => {
-            pen.circle((7.0, 7.0), 4.5);
-            pen.line(&[(10.3, 10.3), (13.8, 13.8)]);
-        }
         Icon::Close => {
             pen.line(&[(3.5, 3.5), (12.5, 12.5)]);
             pen.line(&[(12.5, 3.5), (3.5, 12.5)]);
         }
         Icon::ChevronDown => pen.line(&[(4.0, 6.0), (8.0, 10.0), (12.0, 6.0)]),
-        Icon::ChevronRight => pen.line(&[(6.0, 4.0), (10.0, 8.0), (6.0, 12.0)]),
-        Icon::Settings => {
-            let teeth: Vec<(f32, f32)> = (0..8)
-                .flat_map(|k| {
-                    let a = k as f32 * TAU / 8.0;
-                    [(a - 0.33, 4.6), (a - 0.17, 6.4), (a + 0.17, 6.4), (a + 0.33, 4.6)]
-                })
-                .map(|(a, r)| (8.0 + r * a.cos(), 8.0 + r * a.sin()))
-                .collect();
-            pen.closed(&teeth);
-            pen.circle((8.0, 8.0), 2.0);
-        }
         Icon::Grip => {
             for x in [5.5, 10.5] {
                 for y in [3.5, 8.0, 12.5] {
@@ -388,26 +346,13 @@ pub fn toggle(ui: &mut Ui, icon: Icon, on: bool, tooltip: &str) -> Response {
     widget(ui, icon, on, true, tooltip)
 }
 
-pub fn button_enabled(ui: &mut Ui, icon: Icon, enabled: bool, tooltip: &str) -> Response {
-    widget(ui, icon, false, enabled, tooltip)
-}
-
-pub fn sized(ui: &mut Ui, icon: Icon, size: f32, color: Color32) -> Response {
-    let (rect, resp) = ui.allocate_exact_size(vec2(size, size), Sense::hover());
-    if ui.is_rect_visible(rect) {
-        paint(ui.painter(), rect, icon, color);
-    }
-    resp
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const ALL: [Icon; 48] = [
+    const ALL: [Icon; 39] = [
         Icon::Play,
         Icon::Pause,
-        Icon::Stop,
         Icon::SkipStart,
         Icon::SkipEnd,
         Icon::StepBack,
@@ -421,9 +366,7 @@ mod tests {
         Icon::Undo,
         Icon::Redo,
         Icon::Import,
-        Icon::Export,
         Icon::Plus,
-        Icon::Minus,
         Icon::Trash,
         Icon::Eye,
         Icon::EyeOff,
@@ -435,21 +378,15 @@ mod tests {
         Icon::Effect,
         Icon::Transition,
         Icon::Crop,
-        Icon::Marker,
         Icon::InPoint,
         Icon::OutPoint,
         Icon::ZoomIn,
         Icon::ZoomOut,
         Icon::Fit,
-        Icon::Folder,
         Icon::Film,
         Icon::Music,
-        Icon::Image,
-        Icon::Search,
         Icon::Close,
         Icon::ChevronDown,
-        Icon::ChevronRight,
-        Icon::Settings,
         Icon::Grip,
         Icon::Check,
         Icon::Warning,
@@ -462,8 +399,6 @@ mod tests {
             for icon in ALL {
                 button(ui, icon, "icon");
                 toggle(ui, icon, true, "icon");
-                button_enabled(ui, icon, false, "icon");
-                sized(ui, icon, 24.0, theme::TEXT);
             }
         });
         out.textures_delta.clear();

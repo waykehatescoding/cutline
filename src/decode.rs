@@ -59,11 +59,6 @@ impl Lru {
             self.bytes -= self.map.remove(&oldest).unwrap().0.rgba.len();
         }
     }
-
-    fn clear(&mut self) {
-        self.map.clear();
-        self.bytes = 0;
-    }
 }
 
 struct Shared {
@@ -278,14 +273,6 @@ impl Decoder {
         s.last_t = t;
         s.advance(t)
     }
-
-    pub fn clear(&mut self) {
-        self.scrubs.clear();
-        self.streams.clear();
-        let mut shared = self.shared.lock().unwrap();
-        shared.lru.clear();
-        shared.last.clear();
-    }
 }
 
 pub fn grab_frame(media: &Media, t: f64, w: u32, h: u32) -> Result<Frame, String> {
@@ -410,6 +397,5 @@ mod tests {
             std::thread::sleep(Duration::from_millis(16));
         }
         assert!(distinct.len() >= 5, "only {} distinct frames", distinct.len());
-        d.clear();
     }
 }

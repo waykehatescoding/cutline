@@ -134,14 +134,6 @@ impl ExportJob {
         let _ = std::fs::remove_file(&self.out);
         self.state = JobState::Cancelled;
     }
-
-    pub fn duration(&self) -> f64 {
-        self.duration
-    }
-
-    pub fn output(&self) -> &Path {
-        &self.out
-    }
 }
 
 impl Drop for ExportJob {
@@ -250,8 +242,6 @@ mod tests {
         }
         let out = std::env::temp_dir().join("cutline-job-done.mp4");
         let mut job = ExportJob::start(&color_project(2.0), &opts(), out.clone()).unwrap();
-        assert_eq!(job.duration(), 2.0);
-        assert_eq!(job.output(), out);
         let t = Instant::now();
         while matches!(job.poll(), JobState::Running { .. }) {
             assert!(t.elapsed().as_secs() < 60);
