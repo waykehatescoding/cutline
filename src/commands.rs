@@ -2,6 +2,7 @@ use crate::app::{App, ToastKind, Tool};
 use crate::export::{self, JobState};
 use crate::icons::{self, Icon};
 use crate::model::*;
+use crate::updater::Status;
 use crate::{edit_ops, project_io, shell, theme};
 use eframe::egui::{self, vec2, Align, Align2, Event, FontId, Id, Key, Layout, Modifiers, Sense, Stroke};
 use std::sync::Mutex;
@@ -73,6 +74,7 @@ pub enum Command {
     Palette,
     Shortcuts,
     ExplorerIntegration,
+    CheckUpdates,
     About,
 }
 
@@ -95,7 +97,7 @@ const MENUS: &[(&str, &[&[Command]])] = &[
         ],
     ),
     ("View", &[&[SelectTool, RazorTool, SlipTool], &[Snapping, RippleMode], &[ZoomIn, ZoomOut, ZoomFit], &[Palette]]),
-    ("Help", &[&[Shortcuts, ExplorerIntegration], &[About]]),
+    ("Help", &[&[Shortcuts, ExplorerIntegration], &[CheckUpdates, About]]),
 ];
 
 fn key_label(m: Modifiers, k: Key) -> String {
@@ -176,6 +178,7 @@ impl Command {
             Palette => "Command palette",
             Shortcuts => "Keyboard shortcuts",
             ExplorerIntegration => "Show Edit this video in Explorer",
+            CheckUpdates => "Check for updates",
             About => "About Cutline",
         }
     }
@@ -382,6 +385,10 @@ impl Command {
             Palette => app.palette_open = true,
             Shortcuts => set_flag(&app.ctx, shortcuts_id(), true),
             ExplorerIntegration => toggle_explorer(app),
+            CheckUpdates => {
+                set_flag(&app.ctx, manual_check_id(), true);
+                app.updater.check();
+            }
             About => set_flag(&app.ctx, about_id(), true),
         }
     }
@@ -484,6 +491,43 @@ fn about_id() -> Id {
     Id::unique("cutline_about_open")
 }
 
+fn manual_check_id() -> Id {
+    Id::unique("cutline_manual_update_check")
+}
+
+fn update_status(app: &mut App, ui: &mut egui::Ui) {
+    let manual = app.ctx.data(|d| d.get_temp::<bool>(manual_check_id())).unwrap_or(false);
+    match app.updater.status() {
+        Status::Checking if manual => {
+            ui.add(egui::Spinner::new().size(10.0));
+            ui.label(theme::small("Checking for updates"));
+        }
+        Status::Downloading => {
+            ui.add(egui::Spinner::new().size(10.0));
+            ui.label(theme::small("Downloading update"));
+        }
+        Status::Available { version, .. } => {
+            let text = egui::RichText::new(format!("Update to {version}")).size(theme::SIZE_SMALL).color(theme::ACCENT);
+            if ui.add(egui::Button::new(text).frame(false)).on_hover_text("Download and install, then restart Cutline").clicked() {
+                if app.dirty {
+                    app.notify("Save your project before updating", ToastKind::Error);
+                } else {
+                    app.updater.install();
+                }
+            }
+        }
+        Status::UpToDate if manual => {
+            set_flag(&app.ctx, manual_check_id(), false);
+            app.notify(format!("Cutline {} is up to date", env!("CARGO_PKG_VERSION")), ToastKind::Success);
+        }
+        Status::Failed(e) if manual => {
+            set_flag(&app.ctx, manual_check_id(), false);
+            app.notify(format!("Update failed: {e}"), ToastKind::Error);
+        }
+        _ => {}
+    }
+}
+
 fn set_flag(ctx: &egui::Context, id: Id, on: bool) {
     ctx.data_mut(|d| d.insert_temp(id, on));
 }
@@ -576,6 +620,7 @@ pub fn status_bar(app: &mut App, ui: &mut egui::Ui) {
         } else if !app.ffmpeg_ok {
             ui.label(egui::RichText::new("ffmpeg not found").size(theme::SIZE_SMALL).color(theme::DANGER));
         }
+        update_status(app, ui);
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
             let s = &app.project.settings;
             ui.label(theme::mono(format!("{}x{}  {} fps", s.width, s.height, s.fps)).size(theme::SIZE_SMALL).color(theme::TEXT_MUTED));

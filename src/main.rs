@@ -23,6 +23,7 @@ mod shell;
 mod theme;
 mod thumbs;
 mod timeline;
+mod updater;
 mod waveform;
 
 use eframe::egui;

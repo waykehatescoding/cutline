@@ -1,7 +1,7 @@
 use crate::model::*;
 use crate::{
     audio, commands, compositor, decode, edit_ops, effects_panel, export, export_dialog, history, inspector, media, media_bin, monitor,
-    project_io, theme, thumbs, timeline, waveform,
+    project_io, theme, thumbs, timeline, updater, waveform,
 };
 use eframe::egui;
 use std::path::PathBuf;
@@ -87,6 +87,7 @@ pub struct App {
     pub toasts: Vec<Toast>,
     pub ffmpeg_ok: bool,
     pub last_autosave: f64,
+    pub updater: updater::Updater,
 }
 
 impl App {
@@ -120,8 +121,10 @@ impl App {
             toasts: vec![],
             ffmpeg_ok: crate::ffmpeg::available(),
             last_autosave: 0.0,
+            updater: updater::Updater::new(ctx.clone()),
             ctx,
         };
+        app.updater.check();
         if !app.ffmpeg_ok {
             app.notify("ffmpeg was not found. Install it or place ffmpeg.exe next to cutline.exe", ToastKind::Error);
         }

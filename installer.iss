@@ -75,7 +75,7 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\Cutline"
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\Cutline\command"; ValueType: string; ValueData: """{app}\cutline.exe"" ""%1"""; Tasks: explorer
 
 [Run]
-Filename: "{app}\cutline.exe"; Description: "Launch Cutline"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\cutline.exe"; Description: "Launch Cutline"; Flags: nowait postinstall
 
 [Messages]
 FinishedLabel=Setup has installed [name] on your computer.%n%nCutline requires ffmpeg and ffprobe. Install them and add them to PATH, or place them next to cutline.exe.
