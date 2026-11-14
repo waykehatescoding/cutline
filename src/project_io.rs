@@ -51,12 +51,15 @@ pub fn load(path: &Path) -> Result<Project, String> {
     let mut p: Project = serde_json::from_value(doc["project"].take()).map_err(|e| format!("Project file is damaged: {e}"))?;
     let dir = path.parent().unwrap_or(Path::new("."));
     for (i, m) in p.media.iter_mut().enumerate() {
+        if !is_local(&m.path) {
+            return Err(format!("Project references a network or device path: {}", m.path.display()));
+        }
         if m.path.exists() {
             continue;
         }
-        if let Some(r) = rel[i].as_str() {
+        if let Some(r) = rel[i].as_str().filter(|r| Path::new(r).is_relative()) {
             let candidate = dir.join(r);
-            if candidate.exists() {
+            if is_local(&candidate) && candidate.exists() {
                 m.path = candidate;
             }
         }
@@ -70,6 +73,32 @@ pub fn load(path: &Path) -> Result<Project, String> {
         .unwrap_or(0);
     p.next_id = p.next_id.max(max + 1);
     Ok(p)
+}
+
+fn is_local(path: &Path) -> bool {
+    let s = path.to_string_lossy();
+    if s.starts_with("\\\\") || s.starts_with("//") {
+        return false;
+    }
+    match path.components().next() {
+        Some(Component::Prefix(p)) => matches!(p.kind(), std::path::Prefix::Disk(_)),
+        _ => true,
+    }
+}
+
+pub fn verify_media(p: &mut Project) -> Result<(), String> {
+    let probed: Vec<Option<Result<crate::model::Media, String>>> = std::thread::scope(|s| {
+        let jobs: Vec<_> = p.media.iter().map(|m| m.path.exists().then(|| s.spawn(|| crate::media::probe(&m.path)))).collect();
+        jobs.into_iter().map(|j| j.map(|h| h.join().unwrap_or_else(|_| Err("probe failed".into())))).collect()
+    });
+    for (m, r) in p.media.iter_mut().zip(probed) {
+        if let Some(r) = r {
+            let mut fresh = r.map_err(|e| format!("Project media could not be verified. {e}"))?;
+            fresh.id = m.id;
+            *m = fresh;
+        }
+    }
+    Ok(())
 }
 
 fn config_dir() -> PathBuf {
@@ -251,5 +280,15 @@ mod tests {
         assert_eq!(r.iter().filter(|p| **p == files[5]).count(), 1);
         fs::remove_file(&files[11]).unwrap();
         assert!(!recent_from(&file).contains(&files[11]));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rejects_network_paths() {
+        assert!(is_local(Path::new(r"C:\clips\a.mp4")));
+        assert!(is_local(Path::new("clips/a.mp4")));
+        assert!(!is_local(Path::new(r"\\server\share\a.mp4")));
+        assert!(!is_local(Path::new(r"\\?\UNC\server\share\a.mp4")));
+        assert!(!is_local(Path::new(r"\\.\pipe\x")));
     }
 }

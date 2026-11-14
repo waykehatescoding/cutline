@@ -294,7 +294,7 @@ impl App {
     }
 
     pub fn open_project(&mut self, path: PathBuf) {
-        match project_io::load(&path) {
+        match project_io::load(&path).and_then(|mut p| project_io::verify_media(&mut p).map(|_| p)) {
             Ok(p) => {
                 self.new_project();
                 self.project = p;
