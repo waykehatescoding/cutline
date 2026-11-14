@@ -49,7 +49,7 @@ pub fn load(path: &Path) -> Result<Project, String> {
     }
     let rel = doc["media_relative"].take();
     let mut p: Project = serde_json::from_value(doc["project"].take()).map_err(|e| format!("Project file is damaged: {e}"))?;
-    let dir = path.parent().unwrap_or(Path::new("."));
+    let dir = std::path::absolute(path.parent().unwrap_or(Path::new("."))).map_err(|e| e.to_string())?;
     for (i, m) in p.media.iter_mut().enumerate() {
         if !is_local(&m.path) {
             return Err(format!("Project references a network or device path: {}", m.path.display()));
@@ -57,7 +57,7 @@ pub fn load(path: &Path) -> Result<Project, String> {
         if m.path.exists() {
             continue;
         }
-        if let Some(r) = rel[i].as_str().filter(|r| Path::new(r).is_relative()) {
+        if let Some(r) = rel[i].as_str().filter(|r| is_plain_relative(Path::new(r))) {
             let candidate = dir.join(r);
             if is_local(&candidate) && candidate.exists() {
                 m.path = candidate;
@@ -75,17 +75,27 @@ pub fn load(path: &Path) -> Result<Project, String> {
     Ok(p)
 }
 
+fn plain(c: Component) -> bool {
+    match c {
+        Component::Normal(s) => !s.to_string_lossy().contains(':'),
+        Component::CurDir | Component::ParentDir => true,
+        _ => false,
+    }
+}
+
 fn is_local(path: &Path) -> bool {
-    let plain = |c: Component| matches!(c, Component::Normal(_) | Component::CurDir | Component::ParentDir);
     let mut c = path.components();
     match c.next() {
         Some(Component::Prefix(p)) => {
             matches!(p.kind(), std::path::Prefix::Disk(_)) && c.next() == Some(Component::RootDir) && c.all(plain)
         }
         Some(Component::RootDir) => !cfg!(windows) && c.all(plain),
-        Some(first) => plain(first) && c.all(plain),
-        None => false,
+        _ => false,
     }
+}
+
+fn is_plain_relative(path: &Path) -> bool {
+    path.components().next().is_some() && path.components().all(plain)
 }
 
 pub fn verify_media(p: &mut Project) -> Result<(), String> {
@@ -288,7 +298,10 @@ mod tests {
     #[test]
     fn rejects_network_paths() {
         assert!(is_local(Path::new(r"C:\clips\a.mp4")));
-        assert!(is_local(Path::new("clips/a.mp4")));
+        assert!(!is_local(Path::new("clips/a.mp4")));
+        assert!(is_plain_relative(Path::new(r"..\clips\a.mp4")));
+        assert!(!is_plain_relative(Path::new("smb:/server/a.mp4")));
+        assert!(!is_local(Path::new(r"C:\clips\a.mp4:hidden")));
         assert!(!is_local(Path::new(r"\\server\share\a.mp4")));
         assert!(!is_local(Path::new(r"\\?\UNC\server\share\a.mp4")));
         assert!(!is_local(Path::new(r"\\.\pipe\x")));
