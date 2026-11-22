@@ -25,6 +25,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop icon"; Flags: unchecked
 Name: "explorer"; Description: "Add Play and Edit to the Explorer right-click menu"
+Name: "player"; Description: "Use Cutline as a video player"
 
 [Files]
 Source: "target\release\cutline.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -100,8 +101,33 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flv\shell\CutlineP
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\Cutline.Video"; ValueType: string; ValueData: "Cutline video"; Flags: uninsdeletekey; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\Cutline.Video\DefaultIcon"; ValueType: string; ValueData: "{app}\cutline.exe,0"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\Cutline.Video\shell\open\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Cutline"; Flags: uninsdeletekey; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "Video player and editor"; Tasks: player
+Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "Cutline"; ValueData: "Software\Cutline\Capabilities"; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.mp4\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mp4"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.mov\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mov"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.mkv\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".mkv"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".webm"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.avi\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".avi"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.m4v\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".m4v"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.wmv\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".wmv"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.flv\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".flv"; ValueData: "Cutline.Video"; Tasks: player
+Root: HKCU; Subkey: "Software\Classes\.ts\OpenWithProgids"; ValueType: string; ValueName: "Cutline.Video"; ValueData: ""; Flags: uninsdeletevalue; Tasks: player
+Root: HKCU; Subkey: "Software\Cutline\Capabilities\FileAssociations"; ValueType: string; ValueName: ".ts"; ValueData: "Cutline.Video"; Tasks: player
 
 [Run]
+Filename: "ms-settings:defaultapps?registeredAppUser=Cutline"; Description: "Choose Cutline as the default video player"; Flags: shellexec nowait postinstall; Tasks: player
 Filename: "{app}\cutline.exe"; Description: "Launch Cutline"; Flags: nowait postinstall
 
 [Messages]
