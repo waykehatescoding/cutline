@@ -24,7 +24,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop icon"; Flags: unchecked
-Name: "explorer"; Description: "Add Edit this video to the Explorer right-click menu"
+Name: "explorer"; Description: "Add Play and Edit to the Explorer right-click menu"
 
 [Files]
 Source: "target\release\cutline.exe"; DestDir: "{app}"; Flags: ignoreversion
@@ -73,6 +73,33 @@ Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\Cutline
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\Cutline"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Edit with Cutline"; Flags: uninsdeletekey; Tasks: explorer
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\Cutline"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
 Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\Cutline\command"; ValueType: string; ValueData: """{app}\cutline.exe"" ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4v\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wmv\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wmv\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wmv\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flv\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flv\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flv\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay"; ValueType: string; ValueName: "MUIVerb"; ValueData: "Play with Cutline"; Flags: uninsdeletekey; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\cutline.exe,0"; Tasks: explorer
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ts\shell\CutlinePlay\command"; ValueType: string; ValueData: """{app}\cutline.exe"" --play ""%1"""; Tasks: explorer
 
 [Run]
 Filename: "{app}\cutline.exe"; Description: "Launch Cutline"; Flags: nowait postinstall
