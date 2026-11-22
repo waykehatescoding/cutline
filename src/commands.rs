@@ -75,6 +75,7 @@ pub enum Command {
     Palette,
     Shortcuts,
     ExplorerIntegration,
+    DefaultPlayer,
     CheckUpdates,
     About,
 }
@@ -98,7 +99,7 @@ const MENUS: &[(&str, &[&[Command]])] = &[
         ],
     ),
     ("View", &[&[SelectTool, RazorTool, SlipTool], &[Snapping, RippleMode], &[ZoomIn, ZoomOut, ZoomFit], &[Palette]]),
-    ("Help", &[&[Shortcuts, ExplorerIntegration], &[CheckUpdates, About]]),
+    ("Help", &[&[Shortcuts, ExplorerIntegration, DefaultPlayer], &[CheckUpdates, About]]),
 ];
 
 fn key_label(m: Modifiers, k: Key) -> String {
@@ -179,7 +180,8 @@ impl Command {
             ZoomFit => "Zoom to fit",
             Palette => "Command palette",
             Shortcuts => "Keyboard shortcuts",
-            ExplorerIntegration => "Show Edit this video in Explorer",
+            ExplorerIntegration => "Show Play and Edit in Explorer",
+            DefaultPlayer => "Set as default video player",
             CheckUpdates => "Check for updates",
             About => "About Cutline",
         }
@@ -391,6 +393,7 @@ impl Command {
             Palette => app.palette_open = true,
             Shortcuts => set_flag(&app.ctx, shortcuts_id(), true),
             ExplorerIntegration => toggle_explorer(app),
+            DefaultPlayer => default_player(app),
             CheckUpdates => {
                 set_flag(&app.ctx, manual_check_id(), true);
                 app.updater.check();
@@ -485,6 +488,13 @@ fn toggle_explorer(app: &mut App) {
     };
     match result {
         Ok(text) => app.notify(text, ToastKind::Success),
+        Err(e) => app.notify(e, ToastKind::Error),
+    }
+}
+
+fn default_player(app: &mut App) {
+    match shell::register().and_then(|_| shell::open_default_apps()) {
+        Ok(()) => app.notify("Pick Cutline for each video type in Default apps", ToastKind::Info),
         Err(e) => app.notify(e, ToastKind::Error),
     }
 }

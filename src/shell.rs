@@ -3,6 +3,10 @@ const AUDIO: [&str; 4] = ["mp3", "wav", "flac", "m4a"];
 
 const EDIT: &str = "Cutline";
 const PLAY: &str = "CutlinePlay";
+const PROG_ID: &str = "Cutline.Video";
+const CLASSES: &str = r"HKCU\Software\Classes";
+const CAPABILITIES: &str = r"HKCU\Software\Cutline\Capabilities";
+const DEFAULT_APPS: &str = "ms-settings:defaultapps?registeredAppUser=Cutline";
 
 fn key_path(ext: &str, verb: &str) -> String {
     format!(r"HKCU\Software\Classes\SystemFileAssociations\.{ext}\shell\{verb}")
@@ -69,20 +73,44 @@ mod imp {
         for ext in VIDEO.iter().chain(AUDIO.iter()) {
             add(key_path(ext, EDIT), label(ext), &edit)?;
         }
+        let prog = format!(r"{CLASSES}\{PROG_ID}");
+        reg_ok(&["add", &prog, "/ve", "/d", "Cutline video", "/f"])?;
+        reg_ok(&["add", &format!(r"{prog}\DefaultIcon"), "/ve", "/d", &icon, "/f"])?;
+        reg_ok(&["add", &format!(r"{prog}\shell\open\command"), "/ve", "/d", &play, "/f"])?;
+        reg_ok(&["add", CAPABILITIES, "/v", "ApplicationName", "/d", "Cutline", "/f"])?;
+        reg_ok(&["add", CAPABILITIES, "/v", "ApplicationDescription", "/d", "Video player and editor", "/f"])?;
+        for ext in VIDEO {
+            reg_ok(&["add", &format!(r"{CLASSES}\.{ext}\OpenWithProgids"), "/v", PROG_ID, "/d", "", "/f"])?;
+            reg_ok(&["add", &format!(r"{CAPABILITIES}\FileAssociations"), "/v", &format!(".{ext}"), "/d", PROG_ID, "/f"])?;
+        }
+        reg_ok(&["add", r"HKCU\Software\RegisteredApplications", "/v", "Cutline", "/d", r"Software\Cutline\Capabilities", "/f"])
+    }
+
+    fn delete(args: &[&str]) -> Result<(), String> {
+        let out = reg(args)?;
+        let err = String::from_utf8_lossy(&out.stderr);
+        if !out.status.success() && !err.contains("unable to find") {
+            return Err(err.trim().to_string());
+        }
         Ok(())
     }
 
     pub fn unregister() -> Result<(), String> {
         for ext in VIDEO.iter().chain(AUDIO.iter()) {
             for verb in [EDIT, PLAY] {
-                let out = reg(&["delete", &key_path(ext, verb), "/f"])?;
-                let err = String::from_utf8_lossy(&out.stderr);
-                if !out.status.success() && !err.contains("unable to find") {
-                    return Err(err.trim().to_string());
-                }
+                delete(&["delete", &key_path(ext, verb), "/f"])?;
             }
         }
-        Ok(())
+        for ext in VIDEO {
+            delete(&["delete", &format!(r"{CLASSES}\.{ext}\OpenWithProgids"), "/v", PROG_ID, "/f"])?;
+        }
+        delete(&["delete", &format!(r"{CLASSES}\{PROG_ID}"), "/f"])?;
+        delete(&["delete", r"HKCU\Software\Cutline", "/f"])?;
+        delete(&["delete", r"HKCU\Software\RegisteredApplications", "/v", "Cutline", "/f"])
+    }
+
+    pub fn open_default_apps() -> Result<(), String> {
+        Command::new("explorer").arg(DEFAULT_APPS).spawn().map(|_| ()).map_err(|e| e.to_string())
     }
 }
 
@@ -99,9 +127,13 @@ mod imp {
     pub fn unregister() -> Result<(), String> {
         Err("Explorer integration is only available on Windows".into())
     }
+
+    pub fn open_default_apps() -> Result<(), String> {
+        Err("Default apps are only available on Windows".into())
+    }
 }
 
-pub use imp::{is_registered, register, unregister};
+pub use imp::{is_registered, open_default_apps, register, unregister};
 
 #[cfg(test)]
 mod tests {
