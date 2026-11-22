@@ -569,16 +569,22 @@ fn recent_menu(app: &mut App, ui: &mut egui::Ui) {
 pub const TITLE_H: f32 = 34.0;
 const CAPTION_W: f32 = 46.0;
 
-pub fn menu_bar(app: &mut App, ui: &mut egui::Ui) {
+pub fn title_drag(ui: &mut egui::Ui) -> bool {
     let ctx = ui.ctx().clone();
-    let bar = ui.max_rect();
     let maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
-    let drag = ui.interact(bar, Id::unique("cutline_title_drag"), Sense::click_and_drag());
+    let drag = ui.interact(ui.max_rect(), Id::unique("cutline_title_drag"), Sense::click_and_drag());
     if drag.double_clicked() {
         ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!maximized));
     } else if drag.drag_started_by(egui::PointerButton::Primary) {
         ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
     }
+    maximized
+}
+
+pub fn menu_bar(app: &mut App, ui: &mut egui::Ui) {
+    let ctx = ui.ctx().clone();
+    let bar = ui.max_rect();
+    let maximized = title_drag(ui);
 
     let file = app.original.as_ref().filter(|_| app.project_path.is_none()).and_then(|p| p.file_name()).map(|n| n.to_string_lossy());
     let title = match (&file, app.project.name.trim()) {
@@ -637,7 +643,7 @@ fn app_icon(ctx: &egui::Context) -> egui::TextureHandle {
     t
 }
 
-fn caption_buttons(ui: &mut egui::Ui, maximized: bool) {
+pub fn caption_buttons(ui: &mut egui::Ui, maximized: bool) {
     let h = ui.available_height().max(TITLE_H);
     let buttons = [
         (Icon::Close, "Close", egui::ViewportCommand::Close),
@@ -666,8 +672,10 @@ fn caption_buttons(ui: &mut egui::Ui, maximized: bool) {
 }
 
 pub fn window_frame(ctx: &egui::Context) {
-    let (maximized, rect, pointer, pressed) =
-        ctx.input(|i| (i.viewport().maximized.unwrap_or(false), i.content_rect(), i.pointer.hover_pos(), i.pointer.primary_pressed()));
+    let (maximized, rect, pointer, pressed) = ctx.input(|i| {
+        let v = i.viewport();
+        (v.maximized.unwrap_or(false) || v.fullscreen.unwrap_or(false), i.content_rect(), i.pointer.hover_pos(), i.pointer.primary_pressed())
+    });
     if maximized {
         return;
     }

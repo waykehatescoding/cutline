@@ -18,6 +18,7 @@ mod media;
 mod media_bin;
 mod model;
 mod monitor;
+mod player;
 mod project_io;
 mod shell;
 mod theme;
@@ -29,7 +30,11 @@ mod waveform;
 use eframe::egui;
 
 fn main() -> eframe::Result {
-    let open: Vec<std::path::PathBuf> = std::env::args_os().skip(1).map(Into::into).collect();
+    let mut open: Vec<std::path::PathBuf> = std::env::args_os().skip(1).map(Into::into).collect();
+    let play = open.first().is_some_and(|p| p.as_os_str() == "--play");
+    if play {
+        open.remove(0);
+    }
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("Cutline")
@@ -40,5 +45,5 @@ fn main() -> eframe::Result {
             .with_icon(egui::IconData { rgba: include_bytes!("../assets/icon64.rgba").to_vec(), width: 64, height: 64 }),
         ..Default::default()
     };
-    eframe::run_native("Cutline", options, Box::new(|cc| Ok(Box::new(app::App::new(cc, open)))))
+    eframe::run_native("Cutline", options, Box::new(|cc| Ok(Box::new(app::App::new(cc, open, play)))))
 }

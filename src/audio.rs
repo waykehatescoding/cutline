@@ -4,7 +4,7 @@ use cpal::{FromSample, SampleFormat, SizedSample};
 use std::collections::VecDeque;
 use std::io::Read;
 use std::process::Child;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -19,10 +19,10 @@ fn push_bytes(ring: &mut VecDeque<f32>, bytes: &[u8]) -> usize {
     used
 }
 
-fn drain_into<T: FromSample<f32> + Copy>(ring: &mut VecDeque<f32>, out: &mut [T], silence: T) -> usize {
+fn drain_into<T: FromSample<f32> + Copy>(ring: &mut VecDeque<f32>, out: &mut [T], silence: T, gain: f32) -> usize {
     let taken = ring.len().min(out.len());
     for (o, s) in out.iter_mut().zip(ring.drain(..taken)) {
-        *o = T::from_sample_(s);
+        *o = T::from_sample_(s * gain);
     }
     out[taken..].fill(silence);
     taken
@@ -55,6 +55,7 @@ fn stream_for<T: SizedSample + FromSample<f32> + Send + 'static>(
     ring: Ring,
     started: Arc<AtomicBool>,
     played: Arc<AtomicU64>,
+    gain: Arc<AtomicU32>,
 ) -> Option<cpal::Stream> {
     let channels = config.channels as u64;
     let silence = T::from_sample_(0.0f32);
@@ -69,7 +70,7 @@ fn stream_for<T: SizedSample + FromSample<f32> + Send + 'static>(
                     }
                     return;
                 };
-                drain_into(&mut ring, out, silence);
+                drain_into(&mut ring, out, silence, f32::from_bits(gain.load(Ordering::Relaxed)));
                 if started.load(Ordering::Relaxed) {
                     played.fetch_add(out.len() as u64 / channels, Ordering::Relaxed);
                 }
@@ -80,7 +81,7 @@ fn stream_for<T: SizedSample + FromSample<f32> + Send + 'static>(
         .ok()
 }
 
-fn start(project: &Project, from: f64) -> Option<Playback> {
+fn start(project: &Project, from: f64, gain: Arc<AtomicU32>) -> Option<Playback> {
     let device = cpal::default_host().default_output_device()?;
     let supported = device.default_output_config().ok()?;
     let sample_rate = supported.sample_rate();
@@ -90,12 +91,12 @@ fn start(project: &Project, from: f64) -> Option<Playback> {
     let started = Arc::new(AtomicBool::new(false));
     let played = Arc::new(AtomicU64::new(0));
     let config = supported.config();
-    let (r, s, p) = (ring.clone(), started.clone(), played.clone());
+    let (r, s, p, g) = (ring.clone(), started.clone(), played.clone(), gain);
     let stream = match supported.sample_format() {
-        SampleFormat::F32 => stream_for::<f32>(&device, config, r, s, p),
-        SampleFormat::I16 => stream_for::<i16>(&device, config, r, s, p),
-        SampleFormat::U16 => stream_for::<u16>(&device, config, r, s, p),
-        SampleFormat::I32 => stream_for::<i32>(&device, config, r, s, p),
+        SampleFormat::F32 => stream_for::<f32>(&device, config, r, s, p, g),
+        SampleFormat::I16 => stream_for::<i16>(&device, config, r, s, p, g),
+        SampleFormat::U16 => stream_for::<u16>(&device, config, r, s, p, g),
+        SampleFormat::I32 => stream_for::<i32>(&device, config, r, s, p, g),
         _ => None,
     }?;
     let mut child = crate::ffmpeg::command("ffmpeg")
@@ -138,16 +139,21 @@ fn start(project: &Project, from: f64) -> Option<Playback> {
 
 pub struct AudioEngine {
     playback: Option<Playback>,
+    gain: Arc<AtomicU32>,
 }
 
 impl AudioEngine {
     pub fn new() -> Self {
-        Self { playback: None }
+        Self { playback: None, gain: Arc::new(AtomicU32::new(1.0f32.to_bits())) }
     }
 
     pub fn play(&mut self, project: &Project, from: f64) {
         self.stop();
-        self.playback = start(project, from);
+        self.playback = start(project, from, self.gain.clone());
+    }
+
+    pub fn set_volume(&self, gain: f32) {
+        self.gain.store(gain.to_bits(), Ordering::Relaxed);
     }
 
     pub fn stop(&mut self) {
@@ -177,7 +183,7 @@ mod tests {
     fn drain_pads_with_silence_and_reports_taken() {
         let mut ring = VecDeque::from([1.0f32, -1.0, 0.0]);
         let mut out = [7i16; 5];
-        assert_eq!(drain_into(&mut ring, &mut out, 0), 3);
+        assert_eq!(drain_into(&mut ring, &mut out, 0, 1.0), 3);
         assert_eq!(out, [i16::MAX, -i16::MAX - 1, 0, 0, 0]);
         assert!(ring.is_empty());
     }
@@ -186,7 +192,7 @@ mod tests {
     fn drain_u16_silence_is_midpoint() {
         let mut ring = VecDeque::new();
         let mut out = [1u16; 2];
-        drain_into(&mut ring, &mut out, u16::from_sample_(0.0f32));
+        drain_into(&mut ring, &mut out, u16::from_sample_(0.0f32), 1.0);
         assert_eq!(out, [32768, 32768]);
     }
 }

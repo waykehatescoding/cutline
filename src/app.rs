@@ -1,7 +1,7 @@
 use crate::model::*;
 use crate::{
     audio, commands, compositor, decode, edit_ops, effects_panel, export, export_dialog, history, inspector, media, media_bin, monitor,
-    project_io, theme, thumbs, timeline, updater, waveform,
+    player, project_io, theme, thumbs, timeline, updater, waveform,
 };
 use eframe::egui;
 use std::path::PathBuf;
@@ -89,10 +89,13 @@ pub struct App {
     pub last_autosave: f64,
     pub updater: updater::Updater,
     pub original: Option<PathBuf>,
+    pub player: bool,
+    pub volume: f32,
+    pub muted: bool,
 }
 
 impl App {
-    pub fn new(cc: &eframe::CreationContext<'_>, open: Vec<PathBuf>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>, open: Vec<PathBuf>, player: bool) -> Self {
         theme::apply(&cc.egui_ctx);
         let ctx = cc.egui_ctx.clone();
         let mut app = Self {
@@ -124,6 +127,9 @@ impl App {
             last_autosave: 0.0,
             updater: updater::Updater::new(ctx.clone()),
             original: None,
+            player,
+            volume: 1.0,
+            muted: false,
             ctx,
         };
         app.updater.check();
@@ -276,7 +282,12 @@ impl App {
                     }
                     self.project.media.push(m);
                     if first {
-                        self.selection = edit_ops::add_media(&mut self.project, id, None, 0.0);
+                        let clips = edit_ops::add_media(&mut self.project, id, None, 0.0);
+                        if self.player {
+                            self.play();
+                        } else {
+                            self.selection = clips;
+                        }
                     }
                     self.selected_media = Some(id);
                 }
@@ -382,9 +393,22 @@ impl eframe::App for App {
         if !dropped.is_empty() {
             self.importer.import(dropped);
         }
-        commands::handle_shortcuts(self, &ctx);
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F11)) {
+            let fullscreen = ctx.input(|i| i.viewport().fullscreen.unwrap_or(false));
+            ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(!fullscreen));
+        }
+        if !self.player {
+            commands::handle_shortcuts(self, &ctx);
+        }
         self.tick_playback();
         self.autosave();
+
+        if self.player {
+            player::show(self, ui);
+            commands::window_frame(&ctx);
+            commands::toasts(self, &ctx);
+            return;
+        }
 
         let gutter = egui::Margin::same(3);
         egui::Panel::top("menu")

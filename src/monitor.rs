@@ -35,6 +35,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     ui.data_mut(|d| d.insert_temp(id, st));
 }
 
+pub fn screen(app: &mut App, ui: &mut egui::Ui, area: Rect) {
+    let id = ui.scope_id().with("monitor");
+    let mut st: State = ui.data_mut(|d| d.get_temp(id)).unwrap_or_default();
+    video(app, ui, area, &mut st);
+    ui.data_mut(|d| d.insert_temp(id, st));
+}
+
 fn even(v: f32) -> u32 {
     (v as u32).max(2) & !1
 }
@@ -351,7 +358,7 @@ fn set_out(app: &mut App) {
     app.project.range = Some((start, app.playhead));
 }
 
-fn play_button(app: &mut App, ui: &mut egui::Ui) {
+pub fn play_button(app: &mut App, ui: &mut egui::Ui) {
     let (r, resp) = ui.allocate_exact_size(Vec2::splat(34.0), Sense::click());
     let fill = if resp.hovered() { theme::ACCENT_HOVER } else { theme::ACCENT };
     ui.painter().circle_filled(r.center(), 17.0, fill);

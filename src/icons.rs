@@ -48,6 +48,10 @@ pub enum Icon {
     Grip,
     Check,
     Warning,
+    Stop,
+    Fullscreen,
+    ExitFullscreen,
+    Edit,
 }
 
 struct Pen<'a> {
@@ -310,6 +314,23 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.line(&[(8.0, 6.0), (8.0, 9.5)]);
             pen.dot((8.0, 11.7), 0.8);
         }
+        Icon::Stop => pen.block((4.0, 4.0), (12.0, 12.0), 1),
+        Icon::Fullscreen => {
+            pen.line(&[(2.5, 6.0), (2.5, 2.5), (6.0, 2.5)]);
+            pen.line(&[(10.0, 2.5), (13.5, 2.5), (13.5, 6.0)]);
+            pen.line(&[(13.5, 10.0), (13.5, 13.5), (10.0, 13.5)]);
+            pen.line(&[(6.0, 13.5), (2.5, 13.5), (2.5, 10.0)]);
+        }
+        Icon::ExitFullscreen => {
+            pen.line(&[(2.5, 6.0), (6.0, 6.0), (6.0, 2.5)]);
+            pen.line(&[(10.0, 2.5), (10.0, 6.0), (13.5, 6.0)]);
+            pen.line(&[(13.5, 10.0), (10.0, 10.0), (10.0, 13.5)]);
+            pen.line(&[(6.0, 13.5), (6.0, 10.0), (2.5, 10.0)]);
+        }
+        Icon::Edit => {
+            pen.closed(&[(2.5, 13.5), (3.0, 10.5), (10.5, 3.0), (13.0, 5.5), (5.5, 13.0)]);
+            pen.line(&[(9.0, 4.5), (11.5, 7.0)]);
+        }
     }
 }
 
@@ -359,7 +380,7 @@ pub fn toggle(ui: &mut Ui, icon: Icon, on: bool, tooltip: &str) -> Response {
 mod tests {
     use super::*;
 
-    const ALL: [Icon; 42] = [
+    const ALL: [Icon; 46] = [
         Icon::Play,
         Icon::Pause,
         Icon::SkipStart,
@@ -402,6 +423,10 @@ mod tests {
         Icon::Grip,
         Icon::Check,
         Icon::Warning,
+        Icon::Stop,
+        Icon::Fullscreen,
+        Icon::ExitFullscreen,
+        Icon::Edit,
     ];
 
     #[test]
